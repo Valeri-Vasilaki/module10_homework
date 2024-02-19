@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Chat</title>
+    <style>
+      #chat-box {
+        height: 300px;
+        overflow-y: scroll;
+        border: 1px solid #ccc;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat-box"></div>
+    <input type="text" id="message-input" placeholder="Введите сообщение" />
+    <button onclick="sendMessage()">Отправить</button>
+    <button onclick="sendLocation()">Гео-локация</button>
+
+    <script>
+      const chatBox = document.getElementById("chat-box");
+      const messageInput = document.getElementById("message-input");
+      const ws = new WebSocket("wss://echo-ws-service.herokuapp.com");
+
+      ws.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data);
+        displayMessage(message.content);
+      });
+
+      function displayMessage(message) {
+        const messageElement = document.createElement("p");
+        messageElement.textContent = message;
+        chatBox.appendChild(messageElement);
+      }
+
+      function sendMessage() {
+        const message = messageInput.value;
+        if (message.trim() !== "") {
+          ws.send(JSON.stringify({ type: "message", content: message }));
+          displayMessage(message);
+          messageInput.value = "";
+        }
+      }
+
+      function sendLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              const locationLink = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}`;
+              ws.send(
+                JSON.stringify({ type: "location", content: locationLink })
+              );
+              displayMessage(locationLink);
+            },
+            (error) => {
+              console.error("Error getting geolocation:", error.message);
+            }
+          );
+        } else {
+          alert("Гео-локация не поддерживается вашим браузером.");
+        }
+      }
+    </script>
+  </body>
+</html>
